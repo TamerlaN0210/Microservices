@@ -1,15 +1,15 @@
 import pymongo
-import copy
+from test import *
 from sanic import Sanic
 from sanic.response import json, text
 from bson.objectid import ObjectId
-from passlib.hash import pbkdf2_sha256 as sha256
+
 
 
 client = pymongo.MongoClient()
 db = client.test
 users = db.users
-
+print()
 
 def validate_user(data_dictionary):
     # TODO сделать проверку на значения
