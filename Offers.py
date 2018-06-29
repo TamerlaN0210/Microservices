@@ -1,33 +1,7 @@
-import pymongo
-import copy
+from functions import *
 from sanic import Sanic
 from sanic.response import json, text
 from bson.objectid import ObjectId
-
-client = pymongo.MongoClient()
-db = client.test
-users = db.users
-offers = db.offers
-
-
-def cursor_to_dict(cursor):
-    dict_ = {}
-    i = 0
-    for elem in cursor:
-        dict_.update({i: elem})
-        i += 1
-    return dict_
-
-
-def validate_offer(offer_dictionary):
-    if len(offer_dictionary) == 4:
-        if "user_id" in offer_dictionary and "title" in offer_dictionary and\
-                "text" in offer_dictionary and "created_at" in offer_dictionary:
-            return True
-        else:
-            return False
-    else:
-        return False
 
 app = Sanic(__name__)
 
@@ -35,6 +9,8 @@ app = Sanic(__name__)
 @app.route("/offer/create/", methods=["POST"])
 async def create_offer(request):
     if validate_offer(request.json):
+        users = get_collection("users")
+        offers = get_collection("offers")
         # если польователь с данным id существует, тогда проводим запись
         querry = users.find_one({"_id": ObjectId(request.json.get("user_id"))})
         if querry is not None:
@@ -54,6 +30,7 @@ async def create_offer(request):
 async def get_offer(request):
     if len(request.json) == 1:
         if "offer_id" in request.json:
+            offers = get_collection("offers")
             querry = offers.find_one({"_id": ObjectId(request.json.get("offer_id"))})
             if querry is not None:
                 querry["_id"] = "ObjectID(" + str(querry["_id"]) + ")"
@@ -62,6 +39,7 @@ async def get_offer(request):
             else:
                 return json(None)
         elif "user_id" in request.json:
+            offers = get_collection("offers")
             querry = offers.find({"user_id": ObjectId(request.json.get("user_id"))})
             print(cursor_to_dict(querry))
             if querry is not None:

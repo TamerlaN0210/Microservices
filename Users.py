@@ -1,41 +1,8 @@
-import pymongo
-from test import *
+from functions import *
+import copy
 from sanic import Sanic
 from sanic.response import json, text
 from bson.objectid import ObjectId
-
-
-
-client = pymongo.MongoClient()
-db = client.test
-users = db.users
-print()
-
-def validate_user(data_dictionary):
-    # TODO сделать проверку на значения
-    if len(data_dictionary) == 3:
-        if "username" in data_dictionary and "password" in data_dictionary and "created_at" in data_dictionary:
-            return True
-    else:
-        return False
-
-
-def validate_auth(data_dictionary):
-    # TODO сделать проверку на значения
-    if len(data_dictionary) == 2:
-        if "username" in data_dictionary and "password" in data_dictionary:
-            return True
-    else:
-        return False
-
-
-def does_user_exist(username):
-    username = str(username)
-    querry = users.find_one({"username": username})
-    if querry is None:
-        return False
-    else:
-        return True
 
 
 app = Sanic(__name__)
@@ -46,9 +13,9 @@ async def registry(request):
     if validate_user(request.json):
         username = request.json.get("username")
         if not does_user_exist(username):
-
-            # копирую объект, т.к. при выполнении запроса к бд меняется request.json и сервер не работает
-            querry = db.users.insert_one(copy.copy(request.json))
+            users = get_collection("users")
+            # copying request.json, because "insertOne" adding field "_id" to request.json. I don't need that.
+            querry = users.insert_one(copy.copy(request.json))
             if querry:
                 return text(None, status=201)
             else:
@@ -62,6 +29,7 @@ async def registry(request):
 @app.route("/user/auth/", methods=["POST"])
 async def authorization(request):
     if validate_auth(copy.copy(request.json)):
+        users = get_collection("users")
         querry = users.find_one(request.json)
         if querry is not None:
             return json({"id": str(querry.get("_id"))})
@@ -73,6 +41,7 @@ async def authorization(request):
 
 @app.route("/user/<user_id>", methods=["GET"])
 async def get_user(request, user_id):
+    users = get_collection("users")
     querry = users.find_one({"_id": ObjectId(user_id)}, {"password": 0})
     if querry is not None:
         querry["_id"] = str(querry["_id"])
@@ -81,4 +50,4 @@ async def get_user(request, user_id):
         return text(None, status=401)
 
 
-app.run(host="0.0.0.0", port=8000)
+app.run(host=SANIC_HOST, port=SANIC_PORT)
