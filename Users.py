@@ -1,5 +1,6 @@
 from functions import *
 import copy
+import hashlib
 from sanic import Sanic
 from sanic.response import json, text
 from bson.objectid import ObjectId
@@ -12,6 +13,8 @@ app = Sanic(__name__)
 async def registry(request):
     if validate_user(request.json):
         username = request.json.get("username")
+        hash_password = hashlib.md5((request.json.get("password") + SALT).encode('utf-8'))
+        request.json.update({"password": hash_password.digest()})
         if not does_user_exist(username):
             users = get_collection("users")
             # copying request.json, because "insertOne" adding field "_id" to request.json. I don't need that.
@@ -30,9 +33,10 @@ async def registry(request):
 async def authorization(request):
     if validate_auth(copy.copy(request.json)):
         users = get_collection("users")
+        request.json.update({"password": hashlib.md5((request.json.get("password") + SALT).encode('utf-8')).digest()})
         querry = users.find_one(request.json)
         if querry is not None:
-            return json({"id": str(querry.get("_id"))})
+            return json({"id": str(querry.get("_id"))}, status=201)
         else:
             return text(None, status=401)
     else:
