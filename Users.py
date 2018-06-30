@@ -14,7 +14,7 @@ async def registry(request):
     if validate_user(request.json):
         username = request.json.get("username")
         hash_password = hashlib.md5((request.json.get("password") + SALT).encode('utf-8'))
-        request.json.update({"password": hash_password.digest()})
+        request.json.update({"password": hash_password.digest(), "id": get_next_sequence_value("user_id")})
         if not does_user_exist(username):
             users = get_collection("users")
             # copying request.json, because "insertOne" adding field "_id" to request.json. I don't need that.
@@ -36,7 +36,7 @@ async def authorization(request):
         request.json.update({"password": hashlib.md5((request.json.get("password") + SALT).encode('utf-8')).digest()})
         querry = users.find_one(request.json)
         if querry is not None:
-            return json({"id": str(querry.get("_id"))}, status=201)
+            return json({"id": querry.get("id")}, status=201)
         else:
             return text(None, status=401)
     else:
@@ -46,7 +46,7 @@ async def authorization(request):
 @app.route("/user/<user_id>", methods=["GET"])
 async def get_user(request, user_id):
     users = get_collection("users")
-    querry = users.find_one({"_id": ObjectId(user_id)}, {"password": 0})
+    querry = users.find_one({"id": user_id}, {"password": 0})
     if querry is not None:
         querry["_id"] = str(querry["_id"])
         return json(querry)

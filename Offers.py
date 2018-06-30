@@ -1,7 +1,6 @@
 from functions import *
 from sanic import Sanic
 from sanic.response import json, text
-from bson.objectid import ObjectId
 
 app = Sanic(__name__)
 
@@ -12,9 +11,9 @@ async def create_offer(request):
         users = get_collection("users")
         offers = get_collection("offers")
         # если польователь с данным id существует, тогда проводим запись
-        querry = users.find_one({"_id": ObjectId(request.json.get("user_id"))})
+        querry = users.find_one({"id": request.json.get("user_id")})
         if querry is not None:
-            request.json['user_id'] = ObjectId(request.json['user_id'])
+            request.json.update({"id": get_next_sequence_value("offer_id")})
             querry = offers.insert_one(request.json)
             if querry:
                 return text(None, status=201)
@@ -31,25 +30,26 @@ async def get_offer(request):
     if len(request.json) == 1:
         if "offer_id" in request.json:
             offers = get_collection("offers")
-            querry = offers.find_one({"_id": ObjectId(request.json.get("offer_id"))})
+            querry = offers.find_one({"id": request.json.get("offer_id")})
             if querry is not None:
                 querry["_id"] = "ObjectID(" + str(querry["_id"]) + ")"
-                querry["user_id"] = "ObjectID(" + str(querry["user_id"]) + ")"
+                querry["user_id"] = querry["user_id"]
                 return json(querry, status=201)
             else:
                 return json(None)
         elif "user_id" in request.json:
             offers = get_collection("offers")
-            querry = offers.find({"user_id": ObjectId(request.json.get("user_id"))})
-            print(cursor_to_dict(querry))
+            querry = offers.find({"user_id": request.json.get("user_id")})
+            querry = cursor_to_dict(querry)
+            response = dict()
             if querry is not None:
-                for elem in querry:
-                    elem["_id"] = "ObjectID(" + str(elem["_id"]) + ")"
-                    elem["user_id"] = "ObjectID(" + str(elem["user_id"]) + ")"
-                return json(querry, status=201)
+                for key, elem in querry.items():
+                    response.update({key: elem})
+                    response[key]['_id'] = "ObjectId(" +str(elem['_id'])+ ")"
+                return json(response, status=201)
             else:
                 return json(None)
     else:
         return text("JSON must have only one key, user_id or offer_id")
 
-app.run(host="0.0.0.0", port=8000)
+app.run(host=SANIC_HOST, port=SANIC_PORT)
