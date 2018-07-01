@@ -28,7 +28,7 @@ async def create_offer(request):
 @app.route("/offer/", methods=["POST"])
 async def get_offer(request):
     if len(request.json) == 1:
-        if "offer_id" in request.json:
+        if "offer_id" in request.json and type(request.json["offer_id"]) is int:
             offers = get_collection("offers")
             querry = offers.find_one({"id": request.json.get("offer_id")})
             if querry is not None:
@@ -37,7 +37,7 @@ async def get_offer(request):
                 return json(querry, status=201)
             else:
                 return json(None)
-        elif "user_id" in request.json:
+        elif "user_id" in request.json and type(request.json["user_id"]) is int:
             offers = get_collection("offers")
             querry = offers.find({"user_id": request.json.get("user_id")})
             querry = cursor_to_dict(querry)
@@ -49,6 +49,8 @@ async def get_offer(request):
                 return json(response, status=201)
             else:
                 return json(None)
+        else:
+            return text("Uncorrect JSON key.")
     else:
         return text("JSON must have only one key, user_id or offer_id")
 

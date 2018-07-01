@@ -3,11 +3,9 @@ import copy
 import hashlib
 from sanic import Sanic
 from sanic.response import json, text
-from bson.objectid import ObjectId
 
 
 app = Sanic(__name__)
-
 
 @app.route("/user/registry/", methods=["POST"])
 async def registry(request):
@@ -46,7 +44,7 @@ async def authorization(request):
 @app.route("/user/<user_id>", methods=["GET"])
 async def get_user(request, user_id):
     users = get_collection("users")
-    querry = users.find_one({"id": user_id}, {"password": 0})
+    querry = users.find_one({"id": int(user_id)}, {"password": 0})
     if querry is not None:
         querry["_id"] = str(querry["_id"])
         return json(querry)
