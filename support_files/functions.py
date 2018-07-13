@@ -1,5 +1,5 @@
 import pymongo
-from config import *
+from initialize.config import *
 
 
 def get_collection(collection_name: str):
@@ -10,10 +10,10 @@ def get_collection(collection_name: str):
 
 
 def get_next_sequence_value(sequence_name: str) -> int:
-    counter = get_collection("counter")
-    querry = counter.find_one({"_id": sequence_name})
+    counter = get_collection(COUNTER_COLLECTION)
+    querry = counter.find_one({"name": sequence_name})
     sequence_value = int(querry.get("sequence_value")) + 1
-    counter.update({'_id': sequence_name}, {"sequence_value": sequence_value})
+    counter.update_one({'_id': sequence_name}, {'$set': {"sequence_value": sequence_value}})
     return sequence_value
 
 
@@ -40,9 +40,9 @@ def validate_auth(auth_data: dict) -> bool:
         return False
 
 
-def does_user_exist(username: str) -> bool:
+def does_user_exist(username: str, users) -> bool:
+    # users - коллекция с пользователями в mongoDB
     username = str(username)
-    users = get_collection("users")
     querry = users.find_one({"username": username})
     if querry is None:
         return False
